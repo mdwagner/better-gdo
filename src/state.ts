@@ -12,6 +12,5 @@ export const state = (deviceId: string): Promise<DeviceIdResponse> => {
     headers: {
       "Content-Type": "application/json",
     },
-  })
-    .then((response) => response.json());
+  }).then((response) => response.json());
 };

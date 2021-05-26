@@ -6,56 +6,75 @@ import type {
 } from "./types.ts";
 import { login } from "./login.ts";
 
-// login to ryobi
-const { result } = await login();
+async function main() {
+  // login to ryobi
+  const { result } = await login();
 
-// say hello to user
-console.log(`Hello ${result.metaData.userName}!`);
+  // say hello to user
+  console.log(`Hello ${result.metaData.userName}!`);
 
-// start ws connection with ryobi
-const ws = new WebSocket(ryobiWSUrl);
+  // start ws connection with ryobi
+  const ws = new WebSocket(ryobiWSUrl);
 
-// login to ws connection
-ws.addEventListener("open", () => {
-  const req: RyobiRequest = {
-    jsonrpc: "2.0",
-    method: "srvWebSocketAuth",
-    params: {
-      varName: result.varName,
-      apiKey: result.auth.apiKey,
-    },
-  };
-  ws.send(JSON.stringify(req));
-});
+  // login to ws connection
+  ws.addEventListener("open", () => {
+    const req: RyobiRequest = {
+      jsonrpc: "2.0",
+      method: "srvWebSocketAuth",
+      params: {
+        varName: result.varName,
+        apiKey: result.auth.apiKey,
+      },
+    };
+    ws.send(JSON.stringify(req));
+  });
 
-// listen for incoming messages
-ws.addEventListener("message", (event) => {
-  const response = JSON.parse(event.data) as RyobiResponse;
+  // listen for incoming messages
+  ws.addEventListener("message", (event) => {
+    const response = JSON.parse(event.data) as RyobiResponse;
 
-  switch (response.method) {
-    case "authorizedWebSocket": {
-      const data = response as AuthenticateResponse;
-      if (data.params.authorized) {
-        console.log("logged in!");
-      } else {
-        console.log("failed to login...");
-        console.debug(data);
+    switch (response.method) {
+      case "authorizedWebSocket": {
+        const data = response as AuthenticateResponse;
+        if (data.params.authorized) {
+          console.log("logged in!");
+        } else {
+          console.log("failed to login...");
+          console.debug(data);
+        }
+        break;
       }
-      break;
+      default: {
+        console.log(response);
+        break;
+      }
     }
-    default: {
-      console.log(response);
-      break;
-    }
+  });
+
+  ws.addEventListener("error", (event) => {
+    console.log(event);
+  });
+
+  // disconnect from server on ^C
+  for await (const _ of Deno.signal(Deno.Signal.SIGINT)) {
+    ws.close();
+    Deno.exit();
   }
-});
+}
 
-ws.addEventListener("error", (event) => {
-  console.log(event);
-});
+if (import.meta.main) {
+  // main();
 
-// disconnect from server on ^C
-for await (const _ of Deno.signal(Deno.Signal.SIGINT)) {
-  ws.close();
-  Deno.exit();
+  const w = new Worker(
+    new URL("./workers/gdo-worker.ts", import.meta.url).href,
+    {
+      type: "module",
+      deno: {
+        namespace: true,
+      },
+    }
+  );
+
+  w.postMessage({ message: "hello" });
+  setTimeout(() => (console.log("times up!"), w.terminate()), 5000);
 }

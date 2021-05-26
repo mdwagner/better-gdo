@@ -8,11 +8,9 @@ export const login = (): Promise<LoginResponse> => {
       "x-tc-transform": "tti-app",
       "Content-Type": "application/json",
     },
-
     body: JSON.stringify({
       username: Deno.env.get("RYOBI_USERNAME"),
       password: Deno.env.get("RYOBI_PASSWORD"),
     }),
-  })
-    .then((response) => response.json());
+  }).then((response) => response.json());
 };

@@ -1,3 +1,17 @@
 #!/bin/sh
 set -e
-doppler run -- deno run --unstable -A src/main.ts
+
+command_not_found() {
+  ! command -v $1 > /dev/null
+  return $?
+}
+
+CMD="deno run --unstable -A src/main.ts"
+
+if command_not_found "doppler"; then
+  command $CMD
+elif [ "$1" = "quick" ]; then
+  doppler run --fallback-only -- $CMD
+else
+  doppler run -- $CMD
+fi
