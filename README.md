@@ -1,1 +1,1 @@
-# better-gdo
+# ryobi-gdo-server
